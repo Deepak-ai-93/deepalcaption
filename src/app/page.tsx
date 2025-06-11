@@ -6,7 +6,7 @@ import Image from 'next/image';
 import { ImageUploader } from '@/components/image-uploader';
 import { Button } from '@/components/ui/button';
 import { Alert, AlertDescription } from "@/components/ui/alert";
-import { Terminal, Trash2, Sparkles as AllSparklesIcon, Loader2, FileImage, Copy as CopyIcon, FileText } from "lucide-react";
+import { Terminal, Trash2, Sparkles as AllSparklesIcon, Loader2, FileImage, Copy as CopyIcon, FileText, FileDown } from "lucide-react";
 import { extractTextFromImage } from '@/ai/flows/extract-text-from-image';
 import { generateSocialMediaCaption } from '@/ai/flows/generate-social-media-caption';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from '@/components/ui/card';
@@ -15,6 +15,8 @@ import { Badge } from '@/components/ui/badge';
 import { Textarea } from '@/components/ui/textarea';
 import { useToast } from "@/hooks/use-toast";
 import { Skeleton } from '@/components/ui/skeleton';
+import { Document, Packer, Paragraph, TextRun, HeadingLevel } from 'docx';
+import { saveAs } from 'file-saver';
 
 interface ImageEntry {
   id: string;
@@ -33,6 +35,7 @@ const generateId = () => Math.random().toString(36).substr(2, 9);
 export default function HomePage() {
   const [imageEntries, setImageEntries] = useState<ImageEntry[]>([]);
   const [isProcessingGlobal, setIsProcessingGlobal] = useState(false);
+  const [isGeneratingDocx, setIsGeneratingDocx] = useState(false);
   const { toast } = useToast();
 
   const handleAddImage = useCallback(async (file: File, dataUrl: string) => {
@@ -214,11 +217,59 @@ export default function HomePage() {
     }
   };
 
+  const handleDownloadDocx = async () => {
+    const captionsToExport = imageEntries.filter(entry => entry.caption && entry.caption.trim() !== "");
+    if (captionsToExport.length === 0) {
+      toast({
+        title: "No Captions to Export",
+        description: "Generate some captions before exporting.",
+        variant: "default"
+      });
+      return;
+    }
+
+    setIsGeneratingDocx(true);
+    toast({ title: "Generating DOCX...", description: "Please wait."});
+
+    try {
+      const docChildren = captionsToExport.flatMap((entry, index) => ([
+        new Paragraph({
+          text: entry.file.name,
+          heading: HeadingLevel.HEADING_2,
+          spacing: { after: 200 },
+        }),
+        new Paragraph({
+          children: [new TextRun(entry.caption!)],
+          spacing: { after: 400 },
+        }),
+        ...(index < captionsToExport.length - 1 ? [new Paragraph({ text: "", spacing: { after: 200 } })] : []) // Adds a bit more space or a page break if desired
+      ]));
+
+      const doc = new Document({
+        sections: [{
+          properties: {},
+          children: docChildren,
+        }],
+      });
+
+      const blob = await Packer.toBlob(doc);
+      saveAs(blob, "social_media_captions.docx");
+      toast({ title: "DOCX Generated!", description: "Your download should start shortly."});
+    } catch (error) {
+      console.error("Error generating DOCX:", error);
+      toast({ title: "DOCX Generation Failed", description: "Could not generate the document.", variant: "destructive"});
+    } finally {
+      setIsGeneratingDocx(false);
+    }
+  };
+
+
   const readyForCaptioningCount = imageEntries.filter(
     e => e.extractedText && e.extractedText.trim() !== "" && !e.caption && !e.isGeneratingCaption && !e.captionError
   ).length;
   
   const canGenerateAll = readyForCaptioningCount > 0;
+  const hasAnyCaptions = imageEntries.some(e => e.caption && e.caption.trim() !== "");
 
   return (
     <div className="flex flex-col items-center min-h-screen bg-background p-4 sm:p-6 lg:p-8">
@@ -235,7 +286,20 @@ export default function HomePage() {
       </Card>
 
       {imageEntries.length > 0 && (
-        <div className="w-full max-w-4xl mb-6 flex justify-end">
+        <div className="w-full max-w-4xl mb-6 flex flex-col sm:flex-row justify-end gap-2">
+          <Button 
+            onClick={handleDownloadDocx} 
+            disabled={!hasAnyCaptions || isGeneratingDocx}
+            size="lg"
+            variant="outline"
+          >
+            {isGeneratingDocx ? (
+              <Loader2 className="mr-2 h-5 w-5 animate-spin" />
+            ) : (
+              <FileDown className="mr-2 h-5 w-5" />
+            )}
+            Download All (.docx)
+          </Button>
           <Button 
             onClick={handleGenerateAllCaptions} 
             disabled={!canGenerateAll || isProcessingGlobal}
@@ -373,3 +437,4 @@ export default function HomePage() {
     </div>
   );
 }
+
