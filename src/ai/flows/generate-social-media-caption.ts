@@ -36,7 +36,12 @@ const prompt = ai.definePrompt({
   name: 'generateSocialMediaCaptionPrompt',
   input: {schema: GenerateSocialMediaCaptionInputSchema},
   output: {schema: GenerateSocialMediaCaptionOutputSchema},
-  prompt: `You are a social media expert. Generate an engaging social media caption with relevant hashtags based on the following text: {{{extractedText}}}`,
+  prompt: `You are a social media expert. Generate an engaging social media caption with relevant hashtags based on the following text.
+
+IMPORTANT: Do NOT include any website URLs, physical addresses, email addresses, phone numbers, or specific names of individuals (like doctor names) or their professional titles/designations in the caption. Focus on general themes and calls to action if appropriate, without revealing specific contact or location data.
+
+Extracted Text:
+{{{extractedText}}}`,
 });
 
 const generateSocialMediaCaptionFlow = ai.defineFlow(
