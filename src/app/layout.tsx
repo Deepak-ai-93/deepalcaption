@@ -4,7 +4,7 @@ import './globals.css';
 import { Toaster } from "@/components/ui/toaster"
 
 export const metadata: Metadata = {
-  title: 'CaptionAI Multi',
+  title: 'Deepak AI Caption',
   description: 'Generate social media captions from multiple images using AI',
 };
 
@@ -28,4 +28,3 @@ export default function RootLayout({
     </html>
   );
 }
-

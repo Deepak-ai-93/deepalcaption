@@ -9,17 +9,9 @@ import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Terminal, Trash2, Sparkles as AllSparklesIcon, Loader2, FileImage, Copy as CopyIcon, FileText } from "lucide-react";
 import { extractTextFromImage } from '@/ai/flows/extract-text-from-image';
 import { generateSocialMediaCaption } from '@/ai/flows/generate-social-media-caption';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from '@/components/ui/card';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Badge } from '@/components/ui/badge';
-import {
-  Table,
-  TableHeader,
-  TableBody,
-  TableRow,
-  TableHead,
-  TableCell,
-} from "@/components/ui/table";
 import { Textarea } from '@/components/ui/textarea';
 import { useToast } from "@/hooks/use-toast";
 import { Skeleton } from '@/components/ui/skeleton';
@@ -232,7 +224,7 @@ export default function HomePage() {
     <div className="flex flex-col items-center min-h-screen bg-background p-4 sm:p-6 lg:p-8">
       <Card className="w-full max-w-4xl shadow-2xl rounded-xl overflow-hidden mb-8">
         <CardHeader className="bg-primary text-primary-foreground p-6">
-          <CardTitle className="text-3xl font-headline text-center">CaptionAI Multi</CardTitle>
+          <CardTitle className="text-3xl font-headline text-center">Deepak AI Caption</CardTitle>
           <CardDescription className="text-center text-primary-foreground/80 mt-1">
             Upload images, extract text, and let AI craft perfect social media captions.
           </CardDescription>
@@ -270,127 +262,113 @@ export default function HomePage() {
       )}
 
       {imageEntries.length > 0 && (
-        <Card className="w-full max-w-4xl shadow-lg rounded-xl overflow-hidden">
-            <ScrollArea style={{maxHeight: 'calc(100vh - 500px)' }} className="w-full">
-              <Table>
-                <TableHeader className="sticky top-0 bg-background z-10">
-                  <TableRow>
-                    <TableHead className="w-[100px]">Image</TableHead>
-                    <TableHead className="min-w-[250px]">Extracted Text</TableHead>
-                    <TableHead className="min-w-[250px]">Caption</TableHead>
-                    <TableHead className="w-[120px] text-right">Actions</TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {imageEntries.map((entry) => (
-                    <TableRow key={entry.id}>
-                      <TableCell>
-                        <div className="relative w-20 h-20 rounded-md overflow-hidden bg-muted/30 flex items-center justify-center">
-                          <Image
-                            src={entry.dataUrl}
-                            alt={`Uploaded ${entry.file.name.substring(0,10)}`}
-                            fill
-                            style={{ objectFit: 'contain' }}
-                            data-ai-hint="uploaded content"
-                            sizes="80px"
-                          />
+        <div className="w-full max-w-7xl grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
+          {imageEntries.map((entry) => (
+            <Card key={entry.id} className="flex flex-col shadow-lg rounded-xl overflow-hidden">
+              <CardHeader className="p-4">
+                 <div className="relative aspect-video rounded-md overflow-hidden bg-muted/30 flex items-center justify-center">
+                    <Image
+                        src={entry.dataUrl}
+                        alt={`Uploaded ${entry.file.name.substring(0,10)}`}
+                        fill
+                        style={{ objectFit: 'contain' }}
+                        data-ai-hint="uploaded content"
+                        sizes="(max-width: 640px) 100vw, (max-width: 768px) 50vw, (max-width: 1024px) 33vw, 25vw"
+                    />
+                    </div>
+              </CardHeader>
+              <CardContent className="p-4 flex-grow space-y-3">
+                <div>
+                  <div className="flex justify-between items-center mb-1">
+                    <h3 className="text-sm font-semibold text-foreground">Extracted Text</h3>
+                    {entry.isExtractingText && <Badge variant="outline" className="text-xs"><Loader2 className="mr-1 h-3 w-3 animate-spin" />Extracting...</Badge>}
+                    {entry.textError && !entry.isExtractingText && <Badge variant="destructive" className="text-xs">Error</Badge>}
+                    {entry.extractedText && !entry.textError && !entry.isExtractingText && <Badge variant="secondary" className="text-xs">Ready</Badge>}
+                    {!entry.extractedText && !entry.textError && !entry.isExtractingText && <Badge variant="outline" className="text-xs">Pending</Badge>}
+                  </div>
+                  {entry.isExtractingText ? (
+                      <Skeleton className="h-16 w-full" />
+                  ) : entry.textError ? (
+                      <Alert variant="destructive" className="py-2 px-3 text-xs">
+                        <Terminal className="h-3 w-3" />
+                        <AlertDescription>{entry.textError}</AlertDescription>
+                      </Alert>
+                  ) : entry.extractedText ? (
+                    <ScrollArea className="h-20 border rounded-md p-2 bg-secondary/10 text-xs">
+                      <pre className="whitespace-pre-wrap">{entry.extractedText}</pre>
+                    </ScrollArea>
+                  ) : (
+                      <div className="p-3 bg-muted/20 rounded text-xs text-muted-foreground min-h-[60px] flex items-center justify-center">
+                      <FileText className="mr-2 h-4 w-4" /> No text or not processed.
+                    </div>
+                  )}
+                </div>
+
+                <div>
+                    <h3 className="text-sm font-semibold text-foreground mb-1">Caption</h3>
+                    {entry.isGeneratingCaption && (
+                        <>
+                            <Skeleton className="h-8 w-3/4 mb-1" />
+                            <Skeleton className="h-16 w-full mb-1" />
+                            <Skeleton className="h-8 w-1/2" />
+                        </>
+                    )}
+                    {!entry.isGeneratingCaption && entry.caption && (
+                    <>
+                        <Textarea
+                            value={entry.caption}
+                            readOnly
+                            rows={3}
+                            className="resize-none text-xs bg-secondary/30 border-border focus-visible:ring-primary mb-2"
+                            aria-label="Generated social media caption"
+                        />
+                        <Button onClick={() => handleCopyCaption(entry.caption)} size="sm" variant="outline" className="w-full">
+                        <CopyIcon className="mr-2 h-3 w-3" /> Copy
+                        </Button>
+                    </>
+                    )}
+                    {!entry.isGeneratingCaption && !entry.caption && entry.extractedText && !entry.textError && (
+                    <Button 
+                        onClick={() => handleGenerateSingleCaption(entry.id)} 
+                        size="sm"
+                        className="w-full"
+                        disabled={entry.isGeneratingCaption}
+                    >
+                        <AllSparklesIcon className="mr-2 h-4 w-4" />
+                        Generate Caption
+                    </Button>
+                    )}
+                    {!entry.isGeneratingCaption && entry.captionError && (
+                        <Alert variant="destructive" className="py-2 px-3 text-xs mt-2">
+                            <Terminal className="h-3 w-3" />
+                            <AlertDescription>{entry.captionError}</AlertDescription>
+                        </Alert>
+                    )}
+                    {!entry.extractedText && !entry.caption && !entry.captionError && !entry.isGeneratingCaption && (
+                        <div className="p-3 bg-muted/20 rounded text-xs text-muted-foreground min-h-[60px] flex items-center justify-center">
+                            <FileText className="mr-2 h-4 w-4" /> Caption will appear here.
                         </div>
-                      </TableCell>
-                      <TableCell>
-                        <div className="space-y-2">
-                          <div className="flex justify-between items-center">
-                            <span className="text-xs text-muted-foreground font-medium">Status:</span>
-                            {entry.isExtractingText && <Badge variant="outline" className="text-xs"><Loader2 className="mr-1 h-3 w-3 animate-spin" />Extracting...</Badge>}
-                            {entry.textError && !entry.isExtractingText && <Badge variant="destructive" className="text-xs">Error</Badge>}
-                            {entry.extractedText && !entry.textError && !entry.isExtractingText && <Badge variant="secondary" className="text-xs">Ready</Badge>}
-                            {!entry.extractedText && !entry.textError && !entry.isExtractingText && <Badge variant="outline" className="text-xs">Pending</Badge>}
-                          </div>
-                          {entry.isExtractingText ? (
-                             <Skeleton className="h-16 w-full" />
-                          ) : entry.textError ? (
-                             <Alert variant="destructive" className="py-2 px-3 text-xs">
-                               <Terminal className="h-3 w-3" />
-                               <AlertDescription>{entry.textError}</AlertDescription>
-                             </Alert>
-                          ) : entry.extractedText ? (
-                            <ScrollArea className="h-20 border rounded-md p-2 bg-secondary/10">
-                              <pre className="whitespace-pre-wrap text-xs">{entry.extractedText}</pre>
-                            </ScrollArea>
-                          ) : (
-                             <div className="p-3 bg-muted/20 rounded text-xs text-muted-foreground min-h-[60px] flex items-center justify-center">
-                              <FileText className="mr-2 h-4 w-4" /> No text or not processed.
-                            </div>
-                          )}
-                        </div>
-                      </TableCell>
-                      <TableCell>
-                        <div className="space-y-2">
-                         {entry.isGeneratingCaption && (
-                             <>
-                                <Skeleton className="h-8 w-3/4" />
-                                <Skeleton className="h-16 w-full" />
-                                <Skeleton className="h-8 w-1/2" />
-                             </>
-                         )}
-                         {!entry.isGeneratingCaption && entry.caption && (
-                           <>
-                             <Textarea
-                                value={entry.caption}
-                                readOnly
-                                rows={3}
-                                className="resize-none text-xs bg-secondary/30 border-border focus-visible:ring-primary"
-                                aria-label="Generated social media caption"
-                             />
-                             <Button onClick={() => handleCopyCaption(entry.caption)} size="sm" variant="outline" className="w-full">
-                               <CopyIcon className="mr-2 h-3 w-3" /> Copy
-                             </Button>
-                           </>
-                         )}
-                         {!entry.isGeneratingCaption && !entry.caption && entry.extractedText && !entry.textError && (
-                           <Button 
-                             onClick={() => handleGenerateSingleCaption(entry.id)} 
-                             size="sm"
-                             className="w-full"
-                             disabled={entry.isGeneratingCaption}
-                           >
-                             <AllSparklesIcon className="mr-2 h-4 w-4" />
-                             Generate Caption
-                           </Button>
-                         )}
-                          {!entry.isGeneratingCaption && entry.captionError && (
-                           <Alert variant="destructive" className="py-2 px-3 text-xs mt-2">
-                             <Terminal className="h-3 w-3" />
-                             <AlertDescription>{entry.captionError}</AlertDescription>
-                           </Alert>
-                         )}
-                         {!entry.extractedText && !entry.caption && !entry.captionError && !entry.isGeneratingCaption && (
-                            <div className="p-3 bg-muted/20 rounded text-xs text-muted-foreground min-h-[60px] flex items-center justify-center">
-                                <FileText className="mr-2 h-4 w-4" /> Caption will appear here.
-                            </div>
-                         )}
-                        </div>
-                      </TableCell>
-                      <TableCell className="text-right">
-                         <Button 
-                            variant="ghost" 
-                            size="sm" 
-                            onClick={() => handleRemoveImage(entry.id)}
-                            className="text-destructive hover:text-destructive hover:bg-destructive/10"
-                            aria-label={`Remove image ${entry.id.substring(0,5)}`}
-                          >
-                            <Trash2 className="h-4 w-4" />
-                          </Button>
-                      </TableCell>
-                    </TableRow>
-                  ))}
-                </TableBody>
-              </Table>
-            </ScrollArea>
-         </Card>
+                    )}
+                </div>
+              </CardContent>
+              <CardFooter className="p-4 border-t">
+                <Button 
+                    variant="ghost" 
+                    size="sm" 
+                    onClick={() => handleRemoveImage(entry.id)}
+                    className="w-full text-destructive hover:text-destructive hover:bg-destructive/10"
+                    aria-label={`Remove image ${entry.id.substring(0,5)}`}
+                    >
+                    <Trash2 className="mr-2 h-4 w-4" /> Remove Image
+                </Button>
+              </CardFooter>
+            </Card>
+          ))}
+        </div>
       )}
       
       <footer className="mt-auto pt-8 text-center text-muted-foreground text-sm">
-        <p>&copy; {new Date().getFullYear()} CaptionAI Multi. Powered by GenAI.</p>
+        <p>&copy; {new Date().getFullYear()} Deepak AI Caption. Powered by GenAI.</p>
       </footer>
     </div>
   );
