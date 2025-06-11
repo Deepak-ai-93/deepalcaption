@@ -1,10 +1,11 @@
+
 import type {Metadata} from 'next';
 import './globals.css';
 import { Toaster } from "@/components/ui/toaster"
 
 export const metadata: Metadata = {
-  title: 'CaptionAI',
-  description: 'Generate social media captions from images using AI',
+  title: 'CaptionAI Multi',
+  description: 'Generate social media captions from multiple images using AI',
 };
 
 export default function RootLayout({
@@ -27,3 +28,4 @@ export default function RootLayout({
     </html>
   );
 }
+
